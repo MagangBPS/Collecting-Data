@@ -1,24 +1,25 @@
-// Load the VIIRS Annual Nighttime Lights dataset.
-var dataset = ee.ImageCollection('NOAA/VIIRS/DNB/ANNUAL_V21')
+// Load the VIIRS dtaset
+var dataset = ee.ImageCollection('NOAA/VIIRS/DNB/ANNUAL_V22')
                 .filterBounds(study_area)
-                .filterDate('2021-01-01', '2021-12-31')
+                .filterDate('2022-01-01','2022-12-31')
 
-// Calculate the average radiance for each image in the dataset
-var avgRad = dataset.select('average');
+// ambil rata2 dr kesluruhan 
+var avgRad = dataset.select('average').mean().clip(study_area);
+print(avgRad)
 
-var avgRad_median = avgRad.median()
-var clip_avgRad_median = avgRad_median.clip(study_area)
+// // var avgRad_median = avgRad.median()
+// var avgRad = avgRad.clip(study_area)
 
-var vis_nightTime = {min: 0, max:20, palette: ['black','blue','purple','cyan','green', 'yellow','red']}
-//
+var vis_nightTime = {min: 0, max:20, palette: ['black','white']}
+//'blue','purple','cyan','green', 'yellow','red'
 
-Map.addLayer(clip_avgRad_median, vis_nightTime)
+Map.addLayer(avgRad, vis_nightTime)
 Map.centerObject(study_area,10)
 
-//Export the nighttime lights data to Google Drive
+//Export tiff file ke Google Drive
 Export.image.toDrive({
-  image: clip_avgRad_median,
-  description: 'NighttimeLights_AcehUtara_2021_MAX20',
+  image: avgRad,
+  description: '2022_NTL_AcehUtara_AVG',
   scale: 500,
   region: study_area,
   fileFormat: 'GeoTIFF',

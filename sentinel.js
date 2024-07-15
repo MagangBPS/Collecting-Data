@@ -1,8 +1,8 @@
-// Load dataset Sentinel-2
-var sentinel2 = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+// Load dataset 
+var datasetSentinel = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
                 .filterBounds(study_area)
                 .filterDate('2021-01-01', '2021-12-31')
-                .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20));
+                .filterMetadata('CLOUDY_PIXEL_PERCENTAGE','less_than',20)
 
 // Fungsi untuk masking awan
 function maskS2clouds(image) {
@@ -14,7 +14,7 @@ function maskS2clouds(image) {
   return image.updateMask(mask).divide(10000);
 }
 
-var cloudMasked = sentinel2.map(maskS2clouds);
+var cloudMasked = datasetSentinel.map(maskS2clouds);
 
 // Menghitung NDVI untuk setiap citra dalam dataset
 var addNDVI = function(image) {
@@ -27,24 +27,22 @@ var datasetWithNDVI = cloudMasked.map(addNDVI);
 // Gabungkan median NDVI untuk periode yang ditentukan
 var medianNDVI = datasetWithNDVI.select('NDVI').median().clip(study_area);
 
-// Membuat layer untuk klasifikasi vegetasi dan non-vegetasi
-var veg = medianNDVI.gt(0.3).selfMask();
-var nonVeg = medianNDVI.lte(0.3).selfMask();
+// Buat layer untuk klasifikasi vegetasi dan non-vegetasi
+var veg = medianNDVI.gt(0.33).selfMask();
+var nonVeg = medianNDVI.lte(0.33).selfMask();
 
-
-// Arahkan ke studi area saja
 Map.centerObject(study_area, 10);
 
-// Tambahkan layer vegetasi (NDVI > 0.3) dengan palet warna hijau
+// Tambah layer vegetasi (NDVI > 0.3) jadi warna hijau
 Map.addLayer(veg, {palette: ['green']}, 'Vegetasi');
 
-// Tambahkan layer non-vegetasi (NDVI <= 0.3) dengan palet warna merah
+// Tambah layer non-vegetasi (NDVI <= 0.3) jadi warna merah
 Map.addLayer(nonVeg, {palette: ['red']}, 'Non-Vegetasi');
 
 // Ekspor data NDVI median ke Google Drive
 Export.image.toDrive({
   image: medianNDVI,
-  description: 'NDVI_Sentinel_AcehUtara_2021',
+  description: 'Sentinel_NDVI_AcehUtara_2021',
   scale: 30,
   region: study_area,
   fileFormat: 'GeoTIFF',
